@@ -13,7 +13,7 @@ function $(id){return document.getElementById(id)}
 function toast(msg){console.log(msg); alert(msg)}
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 
-function clock(){const n=new Date(),h=n.getHours();$("clock").textContent=n.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"});$("dateText").textContent=n.toLocaleDateString("id-ID",{weekday:"long",year:"numeric",month:"long",day:"numeric"});$("greeting").textContent=h<5?"Selamat malam":h<11?"Selamat pagi":h<15?"Selamat siang":h<18?"Selamat sore":"Selamat malam"}
+function clock(){const n=new Date(),h=n.getHours(),tz=Intl.DateTimeFormat().resolvedOptions().timeZone||"Local";$("clock").textContent=n.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit",second:"2-digit"});$("dateText").textContent=n.toLocaleDateString(undefined,{weekday:"long",year:"numeric",month:"long",day:"numeric"})+" • "+tz;$("greeting").textContent=h<5?"Selamat malam":h<11?"Selamat pagi":h<15?"Selamat siang":h<18?"Selamat sore":"Selamat malam"}
 setInterval(clock,1000);clock();
 
 function renderMorse(){ $("morseTable").innerHTML=Object.entries(morse).map(([a,b])=>`<div class="morse-item"><b>${a}</b><code>${b}</code></div>`).join("") } renderMorse();
@@ -36,9 +36,11 @@ function historyHTML(x,admin=false){const date=x.createdAt?.toDate?x.createdAt.t
 $("clearMyHistory").onclick=async()=>{if(!currentUser)return; if(!confirm("Hapus seluruh histori akun ini?"))return;const snap=await getDocs(query(collection(db,"history"),where("uid","==",currentUser.uid)));await Promise.all(snap.docs.map(d=>deleteDoc(doc(db,"history",d.id))));loadMyHistory()}
 
 async function loadAnnouncements(){
+ try {
  const q=query(collection(db,"announcements"),orderBy("createdAt","desc"),limit(10));const snap=await getDocs(q);announcementsCache=[];snap.forEach(d=>announcementsCache.push({id:d.id,...d.data()}));
  $("announcements").innerHTML=announcementsCache.length?announcementsCache.map(a=>`<article class="announcement"><h3>📢 ${escapeHtml(a.title)}</h3><p>${escapeHtml(a.body)}</p><small>${a.createdAt?.toDate?a.createdAt.toDate().toLocaleString("id-ID"):"baru saja"} • ${escapeHtml(a.authorName||"Admin")}</small></article>`).join(""):'<div class="empty">Belum ada announcement.</div>';
  if(isAdmin)renderAdminAnnouncements();
+ } catch(e) { console.error("Announcement:",e); $("announcements").innerHTML='<div class="empty">Announcement belum tersedia.</div>'; }
 }
 async function loadAdminData(){
  if(!isAdmin)return;
